@@ -1,0 +1,8 @@
+{
+  "name": "wizard101-rpc",
+  "version": "0.1.0",
+  "description": "Discord Rich Presence for Wizard101!",
+  "main": "index.js",
+  "author": "Christopher Gwynn",
+  "license": "MIT"
+}
