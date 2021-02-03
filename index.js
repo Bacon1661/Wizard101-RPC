@@ -1,24 +1,56 @@
 const fs = require("fs");
 const path = require("path");
-const readLastLine = require("read-last-line");
+const readLastLines = require("read-last-lines");
+const DiscordRPC = require("discord-rpc");
+const rpc = new DiscordRPC.Client({ transport: "ipc" });
 const logPath = "C:\\ProgramData\\KingsIsle Entertainment\\Wizard101\\Bin\\WizardClient.log";
 const zones = require(path.join(__dirname, "./zones.json"));
 
 console.log("           _                  _ __  ___  __                        \n          (_)                | /_ |/ _ \\/_ |                       \n __      ___ ______ _ _ __ __| || | | | || |______ _ __ _ __   ___ \n \\ \\ /\\ / / |_  / _` | \'__/ _` || | | | || |______| \'__| \'_ \\ / __|\n  \\ V  V /| |/ / (_| | | | (_| || | |_| || |      | |  | |_) | (__ \n   \\_/\\_/ |_/___\\__,_|_|  \\__,_||_|\\___/ |_|      |_|  | .__/ \\___|\n                                                       | |         \n  ");
 
-let oldLineCount;
+let oldLineCount, zone, world, health, activity, currentTime;
 (async () => { oldLineCount = await countLines(); })();
+
 fs.watchFile(logPath, { interval: 100 }, async (_curr, _prev) => {
 	let currentLineCount = await countLines();
-	await readLastLine.read(logPath, (currentLineCount - oldLineCount) * 2).then(async (logChunk) => {
+	readLastLines.read(logPath, currentLineCount - oldLineCount).then(async (logChunk) => {
+		//	Get zone
 		try {
-			console.log(zones[/zone = (.+),/.exec(logChunk)[1]]);
-		} catch(_err) { /* No zone information found in this chunk */ }
+			const zoneRegex = new RegExp(/zone = (.+),|CHARACTER LIST/gm);
+			let tempZone = logChunk.match(zoneRegex);
+			if(tempZone) {
+				tempZone = zoneRegex.exec(tempZone[tempZone.length - 1]);
+				zone = tempZone[1] || tempZone[0];
 
-		let health = /WizClientGameEf (.+): Updating health globe \(new health: (\d+), new health max: (\d+)\)/gm.exec(logChunk);
-		console.log(`new health: ${health[2]}, new max health: ${health[3]}`);
-	}).catch(() => { /* No health information found in this chunk */ });
+				world = /= (.+?)\/(.+)/.exec(tempZone);
+				world = world && zones.zoneNames[world[1]] ? world[1] : "WizardCity";
+			}
+		} catch(err) { console.log(err); }
+
+		//	Get health
+		const healthRegex = new RegExp(/WizClientGameEf (.+): Updating health globe \(new health: (\d+), new health max: (\d+)\)/gm);
+		let tempHealth = logChunk.match(healthRegex);
+		if(tempHealth) {
+			health = healthRegex.exec(tempHealth[tempHealth.length - 1]);
+			health = health[3] < health[2] ? [health[2], health[2]] : [health[2], health[3]];
+		}
+	}).catch((err) => { console.log(err); });
 	oldLineCount = currentLineCount;
+
+	if((!activity && zone) || activity && (activity.details !== zones[zone] || health && activity.state !== `Health: ${health[0]}/${health[1]}`)) {
+		if(!activity || activity.details !== zones[zone]) currentTime = new Date();
+		if(zone === "CHARACTER LIST") health = null;
+		activity = {
+			details: zones[zone],
+			state: zone === "CHARACTER LIST" ? undefined : `Health: ${health ? `${health[0]}/${health[1]}` : "unkown"}`,
+			startTimestamp: currentTime,
+			largeImageKey: world.toLowerCase(),
+			largeImageText: zones.zoneNames[world],
+			instance: false
+		};
+		rpc.setActivity(activity);
+		console.log("Activity set!");
+	}
 });
 
 function countLines() {
@@ -36,3 +68,7 @@ function countLines() {
 		}).on("error", reject);
 	});
 }
+
+rpc.on("ready", () => { console.log("Successfully connected to Discord!"); });
+
+rpc.login({ clientId: "799404226081849345" }).catch(console.error);
