@@ -1,1 +1,1 @@
-nodemon index.js
+nodemon index.js --ignore *.json
