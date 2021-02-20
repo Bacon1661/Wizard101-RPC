@@ -35,12 +35,12 @@ function setPresence() {
 			}
 
 			//	Get health
-			const healthRegex = new RegExp(/WizClientGameEf (.+): Updating health globe \(new health: (\d+), new health max: (\d+)\)/gm);
+			const healthRegex = new RegExp(/Updating health globe \(new health: (\d+), new health max: (\d+)\)\r\n(?!(.+)called for a player that is not this client's!)/gm); //	/Updating health globe \(new health: (\d+), new health max: (\d+)\)\n(?!(.+)called for a player that is not this client's!)/gm
 			let tempHealth = logChunk.match(healthRegex);
 
 			if(tempHealth) {
 				health = healthRegex.exec(tempHealth[tempHealth.length - 1]);
-				health = health[3] < health[2] ? [health[2], health[2]] : [health[2], health[3]];
+				health = health[2] < health[1] ? [health[1], health[1]] : [health[1], health[2]];
 			}
 
 			//	Check if the game has been quit
