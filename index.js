@@ -44,7 +44,7 @@ function setPresence() {
 			}
 
 			//	Check if the game has been quit
-			if(logChunk.match(/GameClient::HandleQuit\(\)|Logout due to Away From Keyboard/) && activity) {
+			if(logChunk.match(/GameClient::HandleQuit\(\)|Logout due to Away From Keyboard/) && activity && settings.startup !== "none") {
 				rpc.destroy();
 				process.exit();
 			}
@@ -148,8 +148,8 @@ function connectDiscord() {
 	rpc.once("ready", () => {
 		console.log("Successfully connected to Discord!\nWizard101-rpc is ready! Information will be shown on your Discord profile on game startup or the next zone change.");
 		clearInterval(reconnect);
-		rl.resume();
 		setPresence();
+		rl.resume();
 
 		//	Launch wiz
 		if(settings.startup === "none") return;
