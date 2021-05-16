@@ -29,14 +29,14 @@ If a log file can't be found where expected from these locations, you will be pr
 The startup setting will default to `quick`, meaning Wizard101 will quick launch when Wizard101 RPC starts.
 
 ### Commands
-You can type in commands to change various settings. Type in the command name, followed by an expected value. 
+You can type in commands to change various settings. Type in the command name followed by an expected value. 
 
 - #### `path <path to wizard101>`
-   - Change the path of where Wizard101 RPC will read information from if it's valid
+   - Change the path of where Wizard101 RPC will read information from if valid
    - default: default location, if it exists
    - example: `path D:\Steam\steamapps\common\Wizard101`
 - #### `startup <quick|normal|none>`
-   - How Wizard101 will launch when Wizard101 RPC is started
+   - Sets how Wizard101 will launch when Wizard101 RPC is started
       - quick: quick launch (skip patching, instant login screen)
       - normal: normal launch
       - none: will not launch

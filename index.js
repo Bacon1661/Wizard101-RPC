@@ -1,11 +1,13 @@
 const fs = require("fs");
 const path = require("path");
 const readline = require("readline");
+const https = require("https");
 const { exec } = require("child_process");
 const readLastLines = require("read-last-lines");
 const DiscordRPC = require("discord-rpc");
 const zones = require(path.join(__dirname, "./zones.json"));
 const settings = require(path.join(__dirname, "./settings.json"));
+const package = require(path.join(__dirname, "./package.json"));
 const rl = readline.createInterface({
 	input: process.stdin,
 	output: process.stdout,
@@ -14,6 +16,7 @@ const rl = readline.createInterface({
 let rpc;
 
 console.log("           _                  _ __  ___  __                        \n          (_)                | /_ |/ _ \\/_ |                       \n __      ___ ______ _ _ __ __| || | | | || |______ _ __ _ __   ___ \n \\ \\ /\\ / / |_  / _` | \'__/ _` || | | | || |______| \'__| \'_ \\ / __|\n  \\ V  V /| |/ / (_| | | | (_| || | |_| || |      | |  | |_) | (__ \n   \\_/\\_/ |_/___\\__,_|_|  \\__,_||_|\\___/ |_|      |_|  | .__/ \\___|\n                                                       | |         \n  ");
+console.log("https://github.com/Bacon1661/wizard101-rpc\n");
 
 function setPresence() {
 	let oldLineCount, zone, world, health, activity, currentTime;
@@ -22,7 +25,7 @@ function setPresence() {
 	fs.watchFile(settings.path, { interval: 100 }, async (_curr, _prev) => {
 		let currentLineCount = await countLines();
 		readLastLines.read(settings.path, currentLineCount - oldLineCount).then(async (logChunk) => {
-		//	Get zone
+			//	Get zone
 			const zoneRegex = new RegExp(/zone = (.+),|CHARACTER LIST/gm);
 			let tempZone = logChunk.match(zoneRegex);
 
@@ -81,7 +84,43 @@ function countLines() {
 	});
 }
 
-(async function configureSettings() {
+(function updates() {
+	console.log("Checking for updates...");
+	getJSON("https://raw.githubusercontent.com/Bacon1661/wizard101-rpc/master/package.json");
+
+	function getJSON(url, runConf) {
+		https.get(url, (res) => {
+			let body = "";
+
+			res.on("data", (data) => body += data);
+
+			res.on("end", async () => {
+				try {
+					let file;
+					file = JSON.parse(body);
+					if(runConf) {
+						console.log("Updating zones.json...");
+						if(file.zoneNames) await fs.writeFile(path.join(__dirname, "./zones.json"), JSON.stringify(file, null, 4), () => { /* do nothing */ });
+						configureSettings();
+					} else {
+						if(file.version !== package.version) console.log(`Version ${file.version} is available! Go here to download it: https://github.com/Bacon1661/wizard101-rpc/releases\n`);
+						getJSON("https://raw.githubusercontent.com/Bacon1661/wizard101-rpc/master/zones.json", true);
+					}
+				} catch(err) {
+					console.error(`Error accessing the GitHub repository: ${err.message}`);
+					if(runConf) return configureSettings();
+					getJSON("https://raw.githubusercontent.com/Bacon1661/wizard101-rpc/master/zones.json", true);
+				}
+			});
+		}).on("error", (err) => {
+			console.error(`Error accessing the GitHub repository: ${err.message}`);
+			if(runConf) return configureSettings();
+			getJSON("https://raw.githubusercontent.com/Bacon1661/wizard101-rpc/master/zones.json", true);
+		});
+	}
+}());
+
+async function configureSettings() {
 	const defaultPath = "C:\\ProgramData\\KingsIsle Entertainment\\Wizard101\\Bin\\WizardClient.log";
 	const defaultSteamPath = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Wizard101\\Bin\\WizardClient.log";
 
@@ -97,7 +136,7 @@ function countLines() {
 
 	//	handle command inputs
 	if(!settings.startup) {
-		console.log("No startup settings detected, using the 'quick' startup setting!\nIn the future when you want to play Wizard101 and have Discord RPC working, run this program instead and Wizard101-rpc will quick launch Wizard101 for you.\n\nYou can change this by using the 'startup' command.\nUsage: startup <quick|normal|none>\nExample Usage:\nstartup quick - Set wizard101-rpc to quick launch (skip patching, instant login) Wizard101 on startup.\nstartup normal - Set wizard101-rpc to launch Wizard101 normally on startup.\nstartup none - Set wizard101-rpc to not launch Wizard101 on startup.\n");
+		console.log("No startup settings detected, using the 'quick' startup setting!\nIn the future, run this program instead and Wizard101-RPC will quick launch Wizard101 for you.\n\nYou can change this by using the 'startup' command.\nUsage: startup <quick|normal|none>\nExample Usage:\nstartup quick - Set Wizard101-RPC to quick launch (skip patching, instant login) Wizard101 on startup.\nstartup normal - Set Wizard101-RPC to launch Wizard101 normally on startup.\nstartup none - Set Wizard101-RPC to not launch Wizard101 on startup.\n");
 		settings.startup = "quick";
 		await fs.writeFile(path.join(__dirname, "./settings.json"), JSON.stringify(settings), () => { /* do nothing */ });
 	}
@@ -115,16 +154,16 @@ function countLines() {
 	});
 
 	async function pathCommand(args, init) {
-		if(args && !args[1]) return console.log("\nSets a path to the Wizard101 folder of the client that wizard101-rpc will report from.\nUsage: path <path>\nExample Usage: path D:\\Steam\\steamapps\\common\\Wizard101");
-		if(!fs.existsSync(`${init || args[1]}\\Bin\\WizardClient.log`)) return console.log(init ? `\nCould not find Wizard101 at the path "${init || args[1]}".\nA valid path will need to be supplied to the Wizard101 folder before wizard101-rpc can run properly. Make sure you've ran the game at least once. Please try again.\nExample path (does not have to be steam): D:\\Steam\\steamapps\\common\\Wizard101` : `\nCould not find Wizard101 at the path "${init || args[1]}".\nUsage: path <path>\nExample usage: path D:\\Steam\\steamapps\\common\\Wizard101`);
+		if(args && !args[1]) return console.log("\nChange the path of where Wizard101-RPC will read information from if valid.\nUsage: path <path>\nExample Usage: path D:\\Steam\\steamapps\\common\\Wizard101");
+		if(!fs.existsSync(`${init || args[1]}\\Bin\\WizardClient.log`)) return console.log(init ? `\nCould not find Wizard101 at the path "${init || args[1]}".\nA valid path will need to be supplied to the Wizard101 folder before Wizard101-RPC can run properly. Make sure you've ran the game at least once. Please try again.\nExample path (does not have to be steam): D:\\Steam\\steamapps\\common\\Wizard101` : `\nCould not find Wizard101 at the path "${init || args[1]}".\nUsage: path <path>\nExample usage: path D:\\Steam\\steamapps\\common\\Wizard101`);
 
 		settings.path = `${init || args[1]}\\Bin\\WizardClient.log`;
 		await fs.writeFile(path.join(__dirname, "./settings.json"), JSON.stringify(settings), () => { /* do nothing */ });
-		console.log(`\nNew path set to "${init || args[1]}". If a path was already set, wizard101-rpc won't read from the new path until restarted.`);
+		console.log(`\nNew path set to "${init || args[1]}". If a path was already set, Wizard101-RPC won't read from the new path until its has been restarted.`);
 	}
 
 	async function startupCommand(args) {
-		if(!args[1]) return console.log("\nSets how wizard101-rpc will start Wizard101, if at all.\nUsage: startup <quick|normal|none>\n\nExample Usage:\nstartup quick - Set wizard101-rpc to quick launch Wizard101 on startup.\nstartup normal - Set wizard101-rpc to launch Wizard101 normally on startup.\nstartup none - Set wizard101-rpc to not launch Wizard101 on startup.");
+		if(!args[1]) return console.log("\nSets how Wizard101-RPC will start Wizard101, if at all.\nUsage: startup <quick|normal|none>\n\nExample Usage:\nstartup quick - Set Wizard101-RPC to quick launch Wizard101 on startup.\nstartup normal - Set Wizard101-RPC to launch Wizard101 normally on startup.\nstartup none - Set Wizard101-RPC to not launch Wizard101 on startup.");
 		args[1] = args[1].toLowerCase();
 
 		if(args[1] === "quick" || args[1] === "normal" || args[1] === "none") {
@@ -136,7 +175,7 @@ function countLines() {
 		}
 	}
 	if(settings.path) connectDiscord();
-}());
+}
 
 let reconnect;
 function connectDiscord() {
@@ -146,7 +185,7 @@ function connectDiscord() {
 	rpc = new DiscordRPC.Client({ transport: "ipc" });
 
 	rpc.once("ready", () => {
-		console.log("Successfully connected to Discord!\nWizard101-rpc is ready! Information will be shown on your Discord profile on game startup or the next zone change.");
+		console.log("Successfully connected to Discord!\nWizard101-RPC is ready! Information will be shown on your Discord profile when the game starts, or when the zone changes.");
 		clearInterval(reconnect);
 		setPresence();
 		rl.resume();
@@ -154,7 +193,7 @@ function connectDiscord() {
 		//	Launch wiz
 		if(settings.startup === "none") return;
 		process.chdir(settings.path.slice(0, settings.path.length - (settings.startup === "quick" ? 17 : 21)));
-		settings.startup === "quick" ? exec("WizardGraphicalClient.exe -L 165.193.63.4 12000", (err) => console.log(`\nQuick launched Wizard101!\nIf you encounter an error in-game, try running Wizard101 normally.\n${err ? err : ""}`)) : settings.startup === "normal" ? exec("Wizard101.exe", _err /* an error will always be made, even when successful*/ => console.log("\nLaunched Wizard101!")) : null;
+		settings.startup === "quick" ? exec("WizardGraphicalClient.exe -L 165.193.63.4 12000", (err) => console.log(`\nQuick launched Wizard101!\nIf you encounter an issue, try running Wizard101 normally.\n${err ? err : ""}`)) : settings.startup === "normal" ? exec("Wizard101.exe", _err /* an error will always be made, even when successful*/ => console.log("\nLaunched Wizard101!")) : null;
 	});
 
 	rpc.login({ clientId: "799404226081849345" }).then(() => {
