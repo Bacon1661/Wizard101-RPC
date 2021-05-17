@@ -1,5 +1,8 @@
 {
-	"extends": ["eslint:recommended"],
+	"extends": [
+		"eslint:recommended",
+		"plugin:react/recommended"
+	],
 	"env": {
 		"node": true,
 		"es6": true
@@ -11,8 +14,14 @@
 		"__": false
 	 },
 	"parserOptions": {
-		"ecmaVersion": 2017
+		"ecmaVersion": 2017,
+		"ecmaFeatures": {
+			"jsx": true
+		}
 	},
+	"plugins": [
+		"react"
+	  ],
 	"rules": {
 		"no-extra-parens": ["warn", "all", {
 			"nestedBinaryExpressions": false
