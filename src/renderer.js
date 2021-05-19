@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 /**
  * This file will automatically be loaded by webpack and run in the "renderer" context.
  * To learn more about the differences between the "main" and the "renderer" context in
@@ -26,11 +27,11 @@
  * ```
  */
 
- import React from 'react'
- import ReactDOM from 'react-dom'
- import App from './App'
- import './index.css'
- 
- ReactDOM.render(<App />, document.getElementById('app'))
+import React from "react";
+import ReactDOM from "react-dom";
+import App from "./App";
+import "./index.css";
+
+ReactDOM.render(<App />, document.getElementById("app"));
 
 console.log('👋 This message is being logged by "renderer.js", included via webpack');

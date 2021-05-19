@@ -1,8 +1,8 @@
 {
   "name": "wizard101-rpc",
-  "productName": "wizard101-rpc",
+  "productName": "Wizard101-RPC",
   "version": "1.0.0",
-  "description": "My Electron application description",
+  "description": "Discord Rich Presence for Wizard101",
   "main": ".webpack/main",
   "scripts": {
     "start": "electron-forge start",
@@ -24,7 +24,7 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "wizard101_rpc"
+            "name": "Wizard101-RPC"
           }
         },
         {
@@ -80,10 +80,13 @@
     "style-loader": "^1.2.1"
   },
   "dependencies": {
+    "@chakra-ui/css-reset": "^1.0.0",
     "@chakra-ui/react": "^1.6.1",
     "@emotion/react": "^11",
     "@emotion/styled": "^11",
     "electron-squirrel-startup": "^1.0.0",
+    "eslint-plugin-react": "^7.23.2",
+    "focus-visible": "^5.2.0",
     "framer-motion": "^4",
     "react": "^17.0.2",
     "react-dom": "^17.0.2"
